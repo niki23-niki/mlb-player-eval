@@ -17,17 +17,36 @@ player_data = []
 for name, pid in players.items():
     url = f"https://statsapi.mlb.com/api/v1/people/{pid}?hydrate=stats(group=[hitting],type=[season])"
     res = requests.get(url)
-    info = res.json()["people"][0]
-    team = info["currentTeam"]["name"]
-    stat = info["stats"][0]["splits"][0]["stat"]
-    player_data.append({
-        "이름": name,
-        "팀": team,
-        "타율": stat.get("avg", "N/A"),
-        "OPS": stat.get("ops", "N/A"),
-        "홈런": stat.get("homeRuns", "N/A"),
-        "타점": stat.get("rbi", "N/A")
-    })
+    if res.status_code == 200:
+        data = res.json()
+        info = data.get("people", [{}])[0]
+        team = info.get("currentTeam", {}).get("name", "팀 정보 없음")
+        stats_list = info.get("stats", [])
+        if stats_list and stats_list[0].get("splits"):
+            stat = stats_list[0]["splits"][0]["stat"]
+            avg = stat.get("avg", "N/A")
+            ops = stat.get("ops", "N/A")
+            hr = stat.get("homeRuns", "N/A")
+            rbi = stat.get("rbi", "N/A")
+        else:
+            avg = ops = hr = rbi = "데이터 없음"
+        player_data.append({
+            "이름": name,
+            "팀": team,
+            "타율": avg,
+            "OPS": ops,
+            "홈런": hr,
+            "타점": rbi
+        })
+    else:
+        player_data.append({
+            "이름": name,
+            "팀": "API 오류",
+            "타율": "-",
+            "OPS": "-",
+            "홈런": "-",
+            "타점": "-"
+        })
 
 df = pd.DataFrame(player_data)
 st.dataframe(df)
