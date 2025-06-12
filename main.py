@@ -1,64 +1,45 @@
 import streamlit as st
-import requests
 import pandas as pd
+import requests
 
-st.title("MLB 선수 평가 도구")
+st.title("MLB + KBO 선수 평가 도구 (베타)")
 
-# 예시 선수 목록 (이름: MLB 선수ID)
-players = {
-    "김하성": 673490,
-    "오타니 쇼헤이": 660271,
-    "마이크 트라웃": 545361,
-    "무키 베츠": 605141,
-    "후안 소토": 665742
-}
+league = st.radio("리그 선택", ["MLB", "KBO"])
 
-def fetch_player_stats(player_id):
+if league == "MLB":
+    st.header("MLB 선수 데이터")
+    
+    players = {
+        "오타니 쇼헤이": 660271,
+        "마이크 트라웃": 545361,
+        "후안 소토": 665742,
+    }
+    
+    player_name = st.selectbox("선수 선택", list(players.keys()))
+    player_id = players[player_name]
+    
     url = f"https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[hitting],type=[yearByYear])"
     try:
         res = requests.get(url)
         res.raise_for_status()
         data = res.json()
-        stats = data.get("people", [{}])[0].get("stats", [])
-        if stats:
-            splits = stats[0].get("splits", [])
-            if splits:
-                latest_stats = splits[-1].get("stat", {})
-                return {
-                    "AVG": latest_stats.get("avg", "N/A"),
-                    "OPS": latest_stats.get("ops", "N/A"),
-                    "HR": latest_stats.get("homeRuns", "N/A"),
-                    "RBI": latest_stats.get("rbi", "N/A"),
-                }
-        return {"AVG": "N/A", "OPS": "N/A", "HR": "N/A", "RBI": "N/A"}
-    except:
-        return {"AVG": "Error", "OPS": "Error", "HR": "Error", "RBI": "Error"}
+        stats = data["people"][0]["stats"][0]["splits"][-1]["stat"]
+        st.write(f"**{player_name} 최근 시즌 스탯**")
+        st.write(f"타율: {stats.get('avg', 'N/A')}")
+        st.write(f"홈런: {stats.get('homeRuns', 'N/A')}")
+        st.write(f"타점: {stats.get('rbi', 'N/A')}")
+        st.write(f"OPS: {stats.get('ops', 'N/A')}")
+    except Exception as e:
+        st.error(f"데이터를 불러오는 중 오류 발생: {e}")
 
-def fetch_player_team(player_id):
-    url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
-    try:
-        res = requests.get(url)
-        res.raise_for_status()
-        data = res.json()
-        team = data.get("people", [{}])[0].get("currentTeam", {}).get("name", "팀 정보 없음")
-        return team
-    except:
-        return "팀 정보 없음"
-
-# 데이터 수집
-player_data = []
-for name, pid in players.items():
-    stats = fetch_player_stats(pid)
-    team = fetch_player_team(pid)
-    player_data.append({
-        "선수명": name,
-        "팀": team,
-        "타율(AVG)": stats["AVG"],
-        "OPS": stats["OPS"],
-        "홈런(HR)": stats["HR"],
-        "타점(RBI)": stats["RBI"]
-    })
-
-df = pd.DataFrame(player_data)
-
-st.dataframe(df)
+else:
+    st.header("KBO 선수 데이터 (예시)")
+    # 간단 샘플 데이터 (추후 실제 데이터로 교체 예정)
+    kbo_data = {
+        "선수명": ["박병호", "김광현", "양의지"],
+        "타율": [0.280, 0.250, 0.270],
+        "홈런": [20, 5, 12],
+        "타점": [70, 40, 60]
+    }
+    df = pd.DataFrame(kbo_data)
+    st.dataframe(df)
