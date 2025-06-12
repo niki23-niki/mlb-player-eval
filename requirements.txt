@@ -1,4 +1,4 @@
-streamlit
-pandas
-matplotlib
-numpy
+[server]
+headless = true
+enableCORS = false
+port = 8501
