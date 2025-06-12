@@ -2,9 +2,9 @@ import streamlit as st
 import requests
 import pandas as pd
 
-st.set_page_config(page_title="MLB 선수 평가 도구", layout="wide")
-st.title("📊 MLB 선수 평가 도구 (CSV 없이 안정 버전)")
+st.title("MLB 선수 평가 도구")
 
+# 예시 선수 목록 (이름: MLB 선수ID)
 players = {
     "김하성": 673490,
     "오타니 쇼헤이": 660271,
@@ -13,44 +13,52 @@ players = {
     "후안 소토": 665742
 }
 
-player_data = []
-
-for name, pid in players.items():
+def fetch_player_stats(player_id):
+    url = f"https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[hitting],type=[yearByYear])"
     try:
-        basic_url = f"https://statsapi.mlb.com/api/v1/people/{pid}"
-        res = requests.get(basic_url)
+        res = requests.get(url)
+        res.raise_for_status()
+        data = res.json()
+        stats = data.get("people", [{}])[0].get("stats", [])
+        if stats:
+            splits = stats[0].get("splits", [])
+            if splits:
+                latest_stats = splits[-1].get("stat", {})
+                return {
+                    "AVG": latest_stats.get("avg", "N/A"),
+                    "OPS": latest_stats.get("ops", "N/A"),
+                    "HR": latest_stats.get("homeRuns", "N/A"),
+                    "RBI": latest_stats.get("rbi", "N/A"),
+                }
+        return {"AVG": "N/A", "OPS": "N/A", "HR": "N/A", "RBI": "N/A"}
+    except:
+        return {"AVG": "Error", "OPS": "Error", "HR": "Error", "RBI": "Error"}
+
+def fetch_player_team(player_id):
+    url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
+    try:
+        res = requests.get(url)
         res.raise_for_status()
         data = res.json()
         team = data.get("people", [{}])[0].get("currentTeam", {}).get("name", "팀 정보 없음")
+        return team
     except:
-        team = "팀 정보 없음"
+        return "팀 정보 없음"
 
-    try:
-        stat_url = f"https://statsapi.mlb.com/api/v1/people/{pid}?hydrate=stats(group=[hitting],type=[yearByYear])"
-        stat_res = requests.get(stat_url)
-        stat_res.raise_for_status()
-        stat_data = stat_res.json()
-        splits = stat_data.get("people", [{}])[0].get("stats", [{}])[0].get("splits", [])
-        mlb_splits = [s for s in splits if s.get("league", {}).get("name") == "Major League Baseball"]
-        if mlb_splits:
-            latest = mlb_splits[-1].get("stat", {})
-            avg = latest.get("avg", "데이터 없음")
-            ops = latest.get("ops", "데이터 없음")
-            hr = latest.get("homeRuns", "데이터 없음")
-            rbi = latest.get("rbi", "데이터 없음")
-        else:
-            avg = ops = hr = rbi = "데이터 없음"
-    except:
-        avg = ops = hr = rbi = "데이터 없음"
-
+# 데이터 수집
+player_data = []
+for name, pid in players.items():
+    stats = fetch_player_stats(pid)
+    team = fetch_player_team(pid)
     player_data.append({
-        "이름": name,
+        "선수명": name,
         "팀": team,
-        "타율": avg,
-        "OPS": ops,
-        "홈런": hr,
-        "타점": rbi
+        "타율(AVG)": stats["AVG"],
+        "OPS": stats["OPS"],
+        "홈런(HR)": stats["HR"],
+        "타점(RBI)": stats["RBI"]
     })
 
 df = pd.DataFrame(player_data)
+
 st.dataframe(df)
