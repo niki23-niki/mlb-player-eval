@@ -3,9 +3,8 @@ import requests
 import pandas as pd
 
 st.set_page_config(page_title="MLB 선수 평가 도구", layout="wide")
-st.title("📊 MLB 선수 평가 도구 (아이패드용 안정 버전)")
+st.title("📊 MLB 선수 평가 도구 (CSV 없이 안정 버전)")
 
-# 선수명과 ID 직접 코드 안에 포함
 players = {
     "김하성": 673490,
     "오타니 쇼헤이": 660271,
@@ -18,29 +17,31 @@ player_data = []
 
 for name, pid in players.items():
     try:
-        # 팀 정보 불러오기
         basic_url = f"https://statsapi.mlb.com/api/v1/people/{pid}"
-        basic_res = requests.get(basic_url)
-        team = basic_res.json().get("people", [{}])[0].get("currentTeam", {}).get("name", "팀 정보 없음")
+        res = requests.get(basic_url)
+        res.raise_for_status()
+        data = res.json()
+        team = data.get("people", [{}])[0].get("currentTeam", {}).get("name", "팀 정보 없음")
     except:
         team = "팀 정보 없음"
 
     try:
-        # 연도별 타격 기록 불러오기
         stat_url = f"https://statsapi.mlb.com/api/v1/people/{pid}?hydrate=stats(group=[hitting],type=[yearByYear])"
         stat_res = requests.get(stat_url)
-        splits = stat_res.json().get("people", [{}])[0].get("stats", [{}])[0].get("splits", [])
+        stat_res.raise_for_status()
+        stat_data = stat_res.json()
+        splits = stat_data.get("people", [{}])[0].get("stats", [{}])[0].get("splits", [])
         mlb_splits = [s for s in splits if s.get("league", {}).get("name") == "Major League Baseball"]
         if mlb_splits:
             latest = mlb_splits[-1].get("stat", {})
-            avg = latest.get("avg", "N/A")
-            ops = latest.get("ops", "N/A")
-            hr = latest.get("homeRuns", "N/A")
-            rbi = latest.get("rbi", "N/A")
+            avg = latest.get("avg", "데이터 없음")
+            ops = latest.get("ops", "데이터 없음")
+            hr = latest.get("homeRuns", "데이터 없음")
+            rbi = latest.get("rbi", "데이터 없음")
         else:
             avg = ops = hr = rbi = "데이터 없음"
     except:
-        avg = ops = hr = rbi = "API 오류"
+        avg = ops = hr = rbi = "데이터 없음"
 
     player_data.append({
         "이름": name,
