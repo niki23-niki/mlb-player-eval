@@ -29,16 +29,3 @@ for name, pid in players.items():
             hr = stat.get("homeRuns", "N/A")
             rbi = stat.get("rbi", "N/A")
         else:
-            avg = ops = hr = rbi = "데이터 없음"
-        player_data.append({
-            "이름": name,
-            "팀": team,
-            "타율": avg,
-            "OPS": ops,
-            "홈런": hr,
-            "타점": rbi
-        })
-    else:
-        player_data.append({
-            "이름": name,
-            "팀": "API 
