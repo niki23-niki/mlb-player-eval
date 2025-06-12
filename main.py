@@ -41,12 +41,4 @@ for name, pid in players.items():
     else:
         player_data.append({
             "이름": name,
-            "팀": "API 오류",
-            "타율": "-",
-            "OPS": "-",
-            "홈런": "-",
-            "타점": "-"
-        })
-
-df = pd.DataFrame(player_data)
-st.dataframe(df)
+            "팀": "API 
